@@ -43,18 +43,7 @@
             font-size: 14px;
             position: relative;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-        }
         @media (max-width: 600px) {
-            th, td { font-size: 12px; padding: 5px; }
             li { flex-direction: column; align-items: flex-start; }
             .folder-name { margin-bottom: 5px; }
         }
@@ -848,33 +837,38 @@
         function renderList(searchTerm = '') {
             const ul = document.getElementById('folder-list');
             ul.innerHTML = '';
-            let blueCount = 0, redCount = 0, turquoiseCount = 0;
+            
+            const filtered = folders
+                .filter(f => !hiddenFolders.includes(f.name) && f.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-            folders
-                .filter(f => !hiddenFolders.includes(f.name) && f.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                .forEach(folder => {
-                    const li = document.createElement('li');
-                    const color = folder.hasTxt ? (folder.isStandard ? 'blue' : 'turquoise') : 'red';
-                    if (color === 'blue') blueCount++;
-                    else if (color === 'red') redCount++;
-                    else turquoiseCount++;
+            // Tikli olanları öne al
+            const checked = filtered.filter(f => checkedState[f.name]);
+            const unchecked = filtered.filter(f => !checkedState[f.name]);
+            const sorted = [...checked, ...unchecked];
 
-                    li.innerHTML = `
-                        <input type="checkbox" id="check-${folder.name}" ${checkedState[folder.name] ? 'checked' : ''}>
-                        <span class="folder-name" style="color: ${color}" onclick="showTxt('${folder.name}')">${folder.name}</span>
-                        <button class="delete-btn" onclick="hideFolder('${folder.name}')">Sil</button>
-                        <div id="content-${folder.name}" class="txt-content">${folder.content}</div>
-                    `;
-                    ul.appendChild(li);
-                });
+            let total = sorted.length;
+            let checkedCount = checked.length;
+            let remaining = total - checkedCount;
+
+            sorted.forEach(folder => {
+                const li = document.createElement('li');
+                const color = folder.hasTxt ? (folder.isStandard ? 'blue' : 'turquoise') : 'red';
+
+                li.innerHTML = `
+                    <input type="checkbox" id="check-${folder.name}" ${checkedState[folder.name] ? 'checked' : ''}>
+                    <span class="folder-name" style="color: ${color}" onclick="showTxt('${folder.name}')">${folder.name}</span>
+                    <button class="delete-btn" onclick="hideFolder('${folder.name}')">Sil</button>
+                    <div id="content-${folder.name}" class="txt-content">${folder.content}</div>
+                `;
+                ul.appendChild(li);
+            });
 
             document.getElementById('color-info').innerHTML = `
-                Renk Açıklamaları:<br>
-                <span style="color: blue">Mavi: Standart TXT (11 haneli TC var) (${blueCount})</span><br>
-                <span style="color: red">Kırmızı: TXT Yok (${redCount})</span><br>
-                <span style="color: turquoise">Turkuaz: Farklı Format (TC yok) (${turquoiseCount})</span><br>
-                <button class="files-btn" onclick="window.open('https://cagri2020x.github.io/pdf-viewer/', '_blank')">
-                  Dosyalar
+                Toplam liste sayısı: ${total}<br>
+                Tikli liste sayısı: ${checkedCount}<br>
+                Kalan liste: ${remaining}<br>
+                <button class="files-btn" onclick="window.open('https://cagri2020x.github.io/sistem-liste/', '_blank')">
+                  Y SİSTEM
                 </button>
                 <button class="files-btn" onclick="window.open('https://cagri2020x.github.io/n-sonucyeni/n_sonuc_liste.html', '_blank')">
                   N Liste
@@ -901,6 +895,7 @@
                 const name = e.target.id.replace('check-', '');
                 checkedState[name] = e.target.checked;
                 localStorage.setItem('checkedState', JSON.stringify(checkedState));
+                renderList(document.getElementById('search').value); // Sıralamayı güncelle
             }
         });
 
